@@ -1,0 +1,31 @@
+import csv
+filename = "wdbc.data"
+malignant = 0
+benign = 0
+total = 0
+with open(filename, "r") as file:
+    reader = csv.reader(file)
+    print("First 5 Records:\n")
+    for i, row in enumerate(reader):
+        if i < 5:
+            print(row)
+        total += 1
+        if row[1] == "M":
+            malignant += 1
+        elif row[1] == "B":
+            benign += 1
+prob_m = malignant / total
+prob_b = benign / total
+print("\n-----------------------------")
+print("Dataset Summary")
+print("-----------------------------")
+print("Total Samples :", total)
+print("Malignant Cases :", malignant)
+print("Benign Cases :", benign)
+print("\nProbability of Malignant =", round(prob_m, 4))
+print("Probability of Benign =", round(prob_b, 4))
+if prob_b > prob_m:
+    prediction = "Benign"
+else:
+    prediction = "Malignant"
+print("\nPredicted Class of New Data Instance :", prediction)
