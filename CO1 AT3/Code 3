@@ -1,0 +1,49 @@
+from math import log2
+
+def entropy(column):
+    counts = column.value_counts()
+    total = len(column)
+
+    ent = 0
+
+    for c in counts:
+        p = c / total
+        ent -= p * log2(p)
+
+    return ent
+
+def information_gain(data, attribute, target='play'):
+
+    total_entropy = entropy(data[target])
+
+    weighted_entropy = 0
+
+    for value in data[attribute].unique():
+
+        subset = data[data[attribute] == value]
+
+        weighted_entropy += (len(subset) / len(data)) * entropy(subset[target])
+
+    return total_entropy - weighted_entropy
+
+dataset_entropy = entropy(df['play'])
+
+print("Entropy of Dataset =", round(dataset_entropy,3))
+
+print("\nInformation Gain")
+
+attributes = ['outlook','temp','humidity','windy']
+
+gains = {}
+
+for att in attributes:
+
+    ig = information_gain(df, att)
+
+    gains[att] = ig
+
+    print(att, "=", round(ig,3))
+
+best = max(gains, key=gains.get)
+
+print("\nHighest Information Gain:", best)
