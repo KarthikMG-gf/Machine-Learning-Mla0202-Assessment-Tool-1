@@ -1,0 +1,70 @@
+import pandas as pd
+from google.colab import files
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+print("Upload the spam.csv file")
+uploaded = files.upload()
+df = pd.read_csv("spam.csv", encoding="latin-1")
+df = df[['v1','v2']]
+df.columns = ['Label','Message']
+print("\n==============================")
+print("FIRST FIVE RECORDS")
+print("==============================")
+print(df.head())
+print("\n==============================")
+print("DATASET SHAPE")
+print("==============================")
+print(df.shape)
+print("\n==============================")
+print("CLASS DISTRIBUTION")
+print("==============================")
+print(df['Label'].value_counts())
+X = df['Message']
+y = df['Label']
+vectorizer = CountVectorizer()
+X = vectorizer.fit_transform(X)
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.20,
+    random_state=42
+)
+model = MultinomialNB()
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+accuracy = accuracy_score(y_test, y_pred)
+print("\n==============================")
+print("MODEL ACCURACY")
+print("==============================")
+print(round(accuracy*100,2),"%")
+print("\n==============================")
+print("CONFUSION MATRIX")
+print("==============================")
+print(confusion_matrix(y_test,y_pred))
+print("\n==============================")
+print("CLASSIFICATION REPORT")
+print("==============================")
+print(classification_report(y_test,y_pred))
+message = input("\nEnter a SMS Message : ")
+new_message = [message]
+new_vector = vectorizer.transform(new_message)
+prediction = model.predict(new_vector)
+probability = model.predict_proba(new_vector)
+print("\n==============================")
+print("POSTERIOR PROBABILITIES")
+print("==============================")
+
+for label,prob in zip(model.classes_,probability[0]):
+    print(label,"=",round(prob,4))
+
+print("\n==============================")
+print("PREDICTED CLASS")
+print("==============================")
+print(prediction[0])
+
+if prediction[0]=="spam":
+    print("\nResult : The given message is SPAM.")
+else:
+    print("\nResult : The given message is HAM (Not Spam).")
