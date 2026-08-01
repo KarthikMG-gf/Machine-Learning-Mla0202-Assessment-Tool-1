@@ -1,5 +1,6 @@
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
+
 data = {
     'Offer': [3, 2, 1, 3, 0],
     'Win': [2, 1, 0, 3, 1],
@@ -12,21 +13,30 @@ X = df[['Offer', 'Win']]
 y = df['Spam']
 model = LogisticRegression()
 model.fit(X, y)
-print("Linear Classification Model Constructed Successfully.")
+
+print("Linear Classification Model Constructed Successfully.\n")
+
 
 print("Intercept:", model.intercept_[0])
 print("Coefficient for Offer:", model.coef_[0][0])
 print("Coefficient for Win:", model.coef_[0][1])
-print("\nDecision Boundary Equation:")
-print(f"{model.coef_[0][0]:.4f}*Offer + {model.coef_[0][1]:.4f}*Win + {model.intercept_[0]:.4f} = 0")
 
-new_email = [[2, 1]]
+print("\nDecision Boundary Equation:")
+print(f"{model.coef_[0][0]:.4f} * Offer + "
+      f"{model.coef_[0][1]:.4f} * Win + "
+      f"{model.intercept_[0]:.4f} = 0")
+
+
+new_email = pd.DataFrame({
+    'Offer': [2],
+    'Win': [1]
+})
 
 prediction = model.predict(new_email)
 probability = model.predict_proba(new_email)
 
-print("Prediction:", prediction[0])
-print("Probability:", probability)
+print("\nPrediction:", prediction[0])
+print("Probability [Not Spam, Spam]:", probability)
 
 if prediction[0] == 1:
     print("Email is Spam")
