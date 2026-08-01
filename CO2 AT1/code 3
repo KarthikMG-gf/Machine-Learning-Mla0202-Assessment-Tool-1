@@ -1,34 +1,45 @@
 import pandas as pd
+from sklearn.naive_bayes import BernoulliNB
+
 data = {
     'Fever': [1, 1, 0, 1, 0],
     'Headache': [1, 0, 1, 1, 0],
     'Disease': ['Yes', 'Yes', 'No', 'Yes', 'No']
 }
+
 df = pd.DataFrame(data)
+
 prior = df['Disease'].value_counts(normalize=True)
 
 print("Prior Probabilities:")
 print(prior)
 
-print("P(Fever | Disease)")
+
+
+print("\nP(Fever | Disease)")
 print(pd.crosstab(df['Fever'], df['Disease'], normalize='columns'))
+
 print("\nP(Headache | Disease)")
 print(pd.crosstab(df['Headache'], df['Disease'], normalize='columns'))
 
-from sklearn.naive_bayes import BernoulliNB
-
 df['Disease'] = df['Disease'].map({'No': 0, 'Yes': 1})
+
 X = df[['Fever', 'Headache']]
 y = df['Disease']
+
 model = BernoulliNB()
 model.fit(X, y)
-new_patient = [[1, 0]]
+
+new_patient = pd.DataFrame({
+    'Fever': [1],
+    'Headache': [0]
+})
 
 prediction = model.predict(new_patient)
 probability = model.predict_proba(new_patient)
 
-print("Prediction:", prediction[0])
-print("Probability (No, Yes):", probability)
+print("\nPrediction:", prediction[0])
+print("Probability [No, Yes]:", probability)
 
 if prediction[0] == 1:
     print("Disease: Yes")
