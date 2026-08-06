@@ -1,5 +1,5 @@
-# Karthik V
-# FIND-S Algorithm
+print("Karthik V")
+print ("FIND-S Algorithm")
 
 def find_s(training_data):
     hypothesis = None
