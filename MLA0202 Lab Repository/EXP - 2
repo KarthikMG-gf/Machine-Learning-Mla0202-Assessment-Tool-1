@@ -1,3 +1,5 @@
+print("Karthik V")
+print("Candidate Elimination Algorithm")
 import pandas as pd
 filename = input(r"C:\Users\geeth\Downloads\training_data.csv")
 data = pd.read_csv(filename)
