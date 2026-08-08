@@ -1,0 +1,224 @@
+print("Karthik V")
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import (
+    accuracy_score,
+    confusion_matrix,
+    classification_report,
+    ConfusionMatrixDisplay
+)
+
+data = pd.read_csv("spam.csv", encoding="latin-1")
+
+data = data.iloc[:, :2]
+data.columns = ["label", "message"]
+
+data["label"] = data["label"].map({
+    "ham": 0,
+    "spam": 1
+})
+
+print("Missing Values:")
+print(data.isnull().sum())
+
+data = data.dropna()
+
+print("\nDataset Shape:")
+print(data.shape)
+
+print("\nClass Distribution:")
+print(data["label"].value_counts())
+
+X_train, X_test, y_train, y_test = train_test_split(
+    data["message"],
+    data["label"],
+    test_size=0.2,
+    random_state=42,
+    stratify=data["label"]
+)
+
+vectorizer = CountVectorizer()
+
+X_train_count = vectorizer.fit_transform(X_train)
+X_test_count = vectorizer.transform(X_test)
+
+print("\nFeature Matrix Shape:")
+print(X_train_count.shape)
+
+model = MultinomialNB(alpha=1.0)
+
+model.fit(
+    X_train_count,
+    y_train
+)
+
+y_pred = model.predict(
+    X_test_count
+)
+
+print("\n========== NAIVE BAYES WITH LAPLACE SMOOTHING ==========")
+
+print("Accuracy:")
+print(
+    accuracy_score(
+        y_test,
+        y_pred
+    )
+)
+
+cm = confusion_matrix(
+    y_test,
+    y_pred
+)
+
+print("\nConfusion Matrix:")
+print(cm)
+
+print("\nClassification Report:")
+print(
+    classification_report(
+        y_test,
+        y_pred,
+        target_names=[
+            "Non-Spam",
+            "Spam"
+        ]
+    )
+)
+
+ConfusionMatrixDisplay(
+    confusion_matrix=cm,
+    display_labels=[
+        "Non-Spam",
+        "Spam"
+    ]
+).plot()
+
+plt.title(
+    "Naive Bayes with Laplace Smoothing"
+)
+
+plt.show()
+
+print("\n========== TESTING DIFFERENT ALPHA VALUES ==========")
+
+alphas = [
+    0.01,
+    0.1,
+    0.5,
+    1.0,
+    2.0,
+    5.0
+]
+
+for alpha in alphas:
+
+    model = MultinomialNB(
+        alpha=alpha
+    )
+
+    model.fit(
+        X_train_count,
+        y_train
+    )
+
+    prediction = model.predict(
+        X_test_count
+    )
+
+    accuracy = accuracy_score(
+        y_test,
+        prediction
+    )
+
+    print(
+        "Alpha:",
+        alpha,
+        "Accuracy:",
+        accuracy
+    )
+
+best_alpha = None
+best_accuracy = 0
+
+for alpha in alphas:
+
+    model = MultinomialNB(
+        alpha=alpha
+    )
+
+    model.fit(
+        X_train_count,
+        y_train
+    )
+
+    prediction = model.predict(
+        X_test_count
+    )
+
+    accuracy = accuracy_score(
+        y_test,
+        prediction
+    )
+
+    if accuracy > best_accuracy:
+
+        best_accuracy = accuracy
+        best_alpha = alpha
+
+print("\nBest Alpha:", best_alpha)
+print("Best Accuracy:", best_accuracy)
+
+final_model = MultinomialNB(
+    alpha=best_alpha
+)
+
+final_model.fit(
+    X_train_count,
+    y_train
+)
+
+final_prediction = final_model.predict(
+    X_test_count
+)
+
+print("\n========== FINAL OPTIMIZED MODEL ==========")
+
+print(
+    "Best Alpha:",
+    best_alpha
+)
+
+print(
+    "Accuracy:",
+    accuracy_score(
+        y_test,
+        final_prediction
+    )
+)
+
+print("\nConfusion Matrix:")
+
+final_cm = confusion_matrix(
+    y_test,
+    final_prediction
+)
+
+print(final_cm)
+
+print("\nClassification Report:")
+
+print(
+    classification_report(
+        y_test,
+        final_prediction,
+        target_names=[
+            "Non-Spam",
+            "Spam"
+        ]
+    )
+)
