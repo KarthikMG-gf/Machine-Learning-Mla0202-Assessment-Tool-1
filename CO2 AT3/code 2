@@ -1,0 +1,210 @@
+print("Karthik V")
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import (
+    accuracy_score,
+    confusion_matrix,
+    classification_report,
+    ConfusionMatrixDisplay
+)
+
+data = pd.read_csv("spam.csv", encoding="latin-1")
+
+data = data.iloc[:, :2]
+data.columns = ["label", "message"]
+
+data["label"] = data["label"].map({
+    "ham": 0,
+    "spam": 1
+})
+
+data = data.dropna()
+
+print("Dataset Shape:")
+print(data.shape)
+
+print("\nClass Distribution:")
+print(data["label"].value_counts())
+
+X_train, X_test, y_train, y_test = train_test_split(
+    data["message"],
+    data["label"],
+    test_size=0.2,
+    random_state=42,
+    stratify=data["label"]
+)
+
+vectorizer = TfidfVectorizer(
+    stop_words="english",
+    max_features=5000,
+    ngram_range=(1, 2)
+)
+
+X_train_tfidf = vectorizer.fit_transform(X_train)
+X_test_tfidf = vectorizer.transform(X_test)
+
+model = LogisticRegression(max_iter=1000)
+
+model.fit(X_train_tfidf, y_train)
+
+probabilities = model.predict_proba(X_test_tfidf)[:, 1]
+
+y_pred = (probabilities >= 0.5).astype(int)
+
+print("\n========== ORIGINAL MODEL ==========")
+
+print("Accuracy:")
+print(accuracy_score(y_test, y_pred))
+
+print("\nConfusion Matrix:")
+cm = confusion_matrix(y_test, y_pred)
+print(cm)
+
+print("\nClassification Report:")
+print(
+    classification_report(
+        y_test,
+        y_pred,
+        target_names=["Non-Spam", "Spam"]
+    )
+)
+
+ConfusionMatrixDisplay(
+    confusion_matrix=cm,
+    display_labels=["Non-Spam", "Spam"]
+).plot()
+
+plt.title("Original Logistic Regression")
+plt.show()
+
+tn, fp, fn, tp = cm.ravel()
+
+print("\nFalse Positives:", fp)
+print("False Negatives:", fn)
+
+spam_recall = tp / (tp + fn)
+
+print("Spam Recall:", spam_recall)
+
+threshold = 0.40
+
+y_pred_threshold = (
+    probabilities >= threshold
+).astype(int)
+
+print("\n========== AFTER THRESHOLD ADJUSTMENT ==========")
+
+print("Threshold:", threshold)
+
+print("Accuracy:")
+print(
+    accuracy_score(
+        y_test,
+        y_pred_threshold
+    )
+)
+
+cm_threshold = confusion_matrix(
+    y_test,
+    y_pred_threshold
+)
+
+print("\nConfusion Matrix:")
+print(cm_threshold)
+
+print("\nClassification Report:")
+print(
+    classification_report(
+        y_test,
+        y_pred_threshold,
+        target_names=["Non-Spam", "Spam"]
+    )
+)
+
+ConfusionMatrixDisplay(
+    confusion_matrix=cm_threshold,
+    display_labels=["Non-Spam", "Spam"]
+).plot()
+
+plt.title("After Threshold Adjustment")
+plt.show()
+
+balanced_model = LogisticRegression(
+    class_weight="balanced",
+    max_iter=1000
+)
+
+balanced_model.fit(
+    X_train_tfidf,
+    y_train
+)
+
+balanced_probabilities = balanced_model.predict_proba(
+    X_test_tfidf
+)[:, 1]
+
+y_pred_balanced = (
+    balanced_probabilities >= 0.5
+).astype(int)
+
+print("\n========== BALANCED MODEL ==========")
+
+print("Accuracy:")
+print(
+    accuracy_score(
+        y_test,
+        y_pred_balanced
+    )
+)
+
+cm_balanced = confusion_matrix(
+    y_test,
+    y_pred_balanced
+)
+
+print("\nConfusion Matrix:")
+print(cm_balanced)
+
+print("\nClassification Report:")
+print(
+    classification_report(
+        y_test,
+        y_pred_balanced,
+        target_names=["Non-Spam", "Spam"]
+    )
+)
+
+ConfusionMatrixDisplay(
+    confusion_matrix=cm_balanced,
+    display_labels=["Non-Spam", "Spam"]
+).plot()
+
+plt.title("Balanced Logistic Regression")
+plt.show()
+
+print("\n========== FINAL COMPARISON ==========")
+
+print(
+    "Original Accuracy:",
+    accuracy_score(y_test, y_pred)
+)
+
+print(
+    "Threshold Adjusted Accuracy:",
+    accuracy_score(
+        y_test,
+        y_pred_threshold
+    )
+)
+
+print(
+    "Balanced Model Accuracy:",
+    accuracy_score(
+        y_test,
+        y_pred_balanced
+    )
+)
