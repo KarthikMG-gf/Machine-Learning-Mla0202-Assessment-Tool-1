@@ -1,0 +1,288 @@
+print("Karthik V")
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+
+data = pd.read_csv("house_prices.csv")
+
+print("First 5 Rows:")
+print(data.head())
+
+print("\nDataset Information:")
+print(data.info())
+
+print("\nMissing Values:")
+print(data.isnull().sum())
+
+print("\nStatistical Summary:")
+print(data.describe())
+
+data = data.dropna()
+
+print("\nCorrelation Matrix:")
+print(data.corr(numeric_only=True))
+
+plt.figure(figsize=(10, 6))
+sns.heatmap(
+    data.corr(numeric_only=True),
+    annot=True,
+    cmap="coolwarm"
+)
+plt.title("Correlation Matrix")
+plt.show()
+
+X = data.drop("Price", axis=1)
+y = data["Price"]
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    random_state=42
+)
+
+model = LinearRegression()
+
+model.fit(X_train, y_train)
+
+y_pred = model.predict(X_test)
+
+mae = mean_absolute_error(y_test, y_pred)
+
+mse = mean_squared_error(y_test, y_pred)
+
+rmse = np.sqrt(mse)
+
+r2 = r2_score(y_test, y_pred)
+
+print("\n========== ORIGINAL MODEL ==========")
+
+print("MAE:", mae)
+print("MSE:", mse)
+print("RMSE:", rmse)
+print("R2 Score:", r2)
+
+residuals = y_test - y_pred
+
+plt.figure(figsize=(8, 5))
+plt.scatter(y_pred, residuals)
+plt.axhline(y=0)
+plt.xlabel("Predicted Price")
+plt.ylabel("Residual")
+plt.title("Residual Plot")
+plt.show()
+
+plt.figure(figsize=(8, 5))
+plt.scatter(y_test, y_pred)
+plt.xlabel("Actual Price")
+plt.ylabel("Predicted Price")
+plt.title("Actual vs Predicted Prices")
+plt.show()
+
+numerical_features = X.select_dtypes(
+    include=np.number
+).columns
+
+plt.figure(figsize=(12, 8))
+
+data[numerical_features].boxplot()
+
+plt.xticks(rotation=45)
+plt.title("Boxplot for Outlier Detection")
+plt.show()
+
+vif_data = pd.DataFrame()
+
+vif_data["Feature"] = X.columns
+
+vif_data["VIF"] = [
+    variance_inflation_factor(
+        X.values,
+        i
+    )
+    for i in range(X.shape[1])
+]
+
+print("\n========== VIF VALUES ==========")
+
+print(vif_data)
+
+Q1 = data[numerical_features].quantile(0.25)
+
+Q3 = data[numerical_features].quantile(0.75)
+
+IQR = Q3 - Q1
+
+lower_bound = Q1 - 1.5 * IQR
+
+upper_bound = Q3 + 1.5 * IQR
+
+outlier_condition = (
+    (data[numerical_features] < lower_bound) |
+    (data[numerical_features] > upper_bound)
+).any(axis=1)
+
+print("\nNumber of Outliers:")
+print(outlier_condition.sum())
+
+clean_data = data[
+    ~outlier_condition
+].copy()
+
+print("\nOriginal Dataset Size:", len(data))
+
+print("Dataset Size After Removing Outliers:", len(clean_data))
+
+X_clean = clean_data.drop(
+    "Price",
+    axis=1
+)
+
+y_clean = clean_data["Price"]
+
+X_train_clean, X_test_clean, y_train_clean, y_test_clean = train_test_split(
+    X_clean,
+    y_clean,
+    test_size=0.2,
+    random_state=42
+)
+
+scaler = StandardScaler()
+
+X_train_scaled = scaler.fit_transform(
+    X_train_clean
+)
+
+X_test_scaled = scaler.transform(
+    X_test_clean
+)
+
+optimized_model = LinearRegression()
+
+optimized_model.fit(
+    X_train_scaled,
+    y_train_clean
+)
+
+y_pred_optimized = optimized_model.predict(
+    X_test_scaled
+)
+
+mae_optimized = mean_absolute_error(
+    y_test_clean,
+    y_pred_optimized
+)
+
+mse_optimized = mean_squared_error(
+    y_test_clean,
+    y_pred_optimized
+)
+
+rmse_optimized = np.sqrt(
+    mse_optimized
+)
+
+r2_optimized = r2_score(
+    y_test_clean,
+    y_pred_optimized
+)
+
+print("\n========== OPTIMIZED MODEL ==========")
+
+print("MAE:", mae_optimized)
+
+print("MSE:", mse_optimized)
+
+print("RMSE:", rmse_optimized)
+
+print("R2 Score:", r2_optimized)
+
+plt.figure(figsize=(8, 5))
+
+plt.scatter(
+    y_test_clean,
+    y_pred_optimized
+)
+
+plt.xlabel("Actual Price")
+
+plt.ylabel("Predicted Price")
+
+plt.title(
+    "Optimized Model: Actual vs Predicted"
+)
+
+plt.show()
+
+optimized_residuals = (
+    y_test_clean -
+    y_pred_optimized
+)
+
+plt.figure(figsize=(8, 5))
+
+plt.scatter(
+    y_pred_optimized,
+    optimized_residuals
+)
+
+plt.axhline(y=0)
+
+plt.xlabel("Predicted Price")
+
+plt.ylabel("Residual")
+
+plt.title(
+    "Optimized Model Residual Plot"
+)
+
+plt.show()
+
+comparison = pd.DataFrame({
+    "Metric": [
+        "MAE",
+        "MSE",
+        "RMSE",
+        "R2 Score"
+    ],
+    "Original Model": [
+        mae,
+        mse,
+        rmse,
+        r2
+    ],
+    "Optimized Model": [
+        mae_optimized,
+        mse_optimized,
+        rmse_optimized,
+        r2_optimized
+    ]
+})
+
+print("\n========== MODEL COMPARISON ==========")
+
+print(comparison)
+
+print("\n========== IMPROVEMENT ==========")
+
+if rmse_optimized < rmse:
+    print("RMSE decreased.")
+    print("Prediction error has improved.")
+
+else:
+    print("RMSE did not decrease.")
+
+if r2_optimized > r2:
+    print("R2 score increased.")
+    print("Model performance has improved.")
+
+else:
+    print("R2 score did not increase.")
