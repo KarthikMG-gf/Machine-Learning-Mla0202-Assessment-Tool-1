@@ -1,0 +1,90 @@
+print("Karthik V")
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+
+data = {
+    "Age": [25, 35, 45, 23, 52, 41, 29, 60, 33, 48,
+            27, 55, 38, 31, 44, 50, 26, 57, 36, 42],
+    "Income": [25000, 50000, 75000, 22000, 90000, 65000, 35000, 100000,
+               45000, 80000, 30000, 95000, 55000, 40000, 70000, 85000,
+               28000, 110000, 48000, 68000],
+    "LoanAmount": [15000, 20000, 15000, 18000, 10000, 12000, 22000, 8000,
+                   18000, 12000, 25000, 9000, 16000, 20000, 13000, 10000,
+                   23000, 7000, 17000, 14000],
+    "CreditHistory": ["Poor", "Good", "Good", "Poor", "Good",
+                      "Good", "Poor", "Good", "Good", "Good",
+                      "Poor", "Good", "Good", "Poor", "Good",
+                      "Good", "Poor", "Good", "Good", "Good"],
+    "CreditScore": [
+        "Low", "High", "High", "Low", "High",
+        "High", "Low", "High", "High", "High",
+        "Low", "High", "High", "Low", "High",
+        "High", "Low", "High", "High", "High"
+    ]
+}
+
+df = pd.DataFrame(data)
+
+print("Dataset:")
+print(df)
+
+encoder = LabelEncoder()
+
+df["CreditHistory"] = encoder.fit_transform(df["CreditHistory"])
+
+X = df.drop("CreditScore", axis=1)
+y = df["CreditScore"]
+
+target_encoder = LabelEncoder()
+y = target_encoder.fit_transform(y)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
+)
+
+model = RandomForestClassifier(
+    n_estimators=100,
+    random_state=42
+)
+
+model.fit(X_train, y_train)
+
+y_pred = model.predict(X_test)
+
+print("\nCredit Score Classification Model Created Successfully!")
+
+print("\nConfusion Matrix:")
+print(confusion_matrix(y_test, y_pred))
+
+print("\nAccuracy:")
+print(accuracy_score(y_test, y_pred))
+
+print("\nClassification Report:")
+print(classification_report(
+    y_test,
+    y_pred,
+    target_names=target_encoder.classes_,
+    zero_division=0
+))
+
+age = float(input("\nEnter Age: "))
+income = float(input("Enter Income: "))
+loan = float(input("Enter Loan Amount: "))
+
+print("Credit History values: Poor, Good")
+history = input("Enter Credit History: ").strip().title()
+
+history_encoded = encoder.transform([history])[0]
+
+sample = pd.DataFrame(
+    [[age, income, loan, history_encoded]],
+    columns=X.columns
+)
+
+prediction = model.predict(sample)
+
+print("\nPredicted Credit Score:",
+      target_encoder.inverse_transform(prediction)[0])
