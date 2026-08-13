@@ -1,0 +1,195 @@
+print("Karthik V")
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA, FactorAnalysis, FastICA
+from sklearn.mixture import GaussianMixture
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+
+data = {
+    "Sample": [1,2,3,4,5,6,7,8,9,10],
+    "Alcohol": [14.23,13.20,13.16,14.37,13.24,14.20,14.39,14.06,14.83,13.86],
+    "MalicAcid": [1.71,1.78,2.36,1.95,2.59,1.76,1.87,2.15,1.64,1.35],
+    "Ash": [2.43,2.14,2.67,2.50,2.87,2.45,2.45,2.61,2.17,2.27],
+    "Alkalinity": [15.6,11.2,18.6,16.8,21.0,15.2,14.6,17.6,14.0,16.0],
+    "Magnesium": [127,100,101,113,118,112,96,121,97,98],
+    "Phenols": [2.80,2.65,2.80,3.85,2.80,3.27,2.50,2.60,2.80,2.98]
+}
+
+df = pd.DataFrame(data)
+
+X = df[
+    [
+        "Alcohol",
+        "MalicAcid",
+        "Ash",
+        "Alkalinity",
+        "Magnesium",
+        "Phenols"
+    ]
+]
+
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+pca = PCA(n_components=2)
+X_pca = pca.fit_transform(X_scaled)
+
+fa = FactorAnalysis(
+    n_components=2,
+    random_state=42
+)
+
+X_fa = fa.fit_transform(X_scaled)
+
+ica = FastICA(
+    n_components=2,
+    random_state=42,
+    max_iter=2000
+)
+
+X_ica = ica.fit_transform(X_scaled)
+
+print("Original Data Shape:")
+print(X.shape)
+
+print("\nPCA Shape:")
+print(X_pca.shape)
+
+print("\nFactor Analysis Shape:")
+print(X_fa.shape)
+
+print("\nICA Shape:")
+print(X_ica.shape)
+
+print("\nPCA Explained Variance Ratio:")
+print(pca.explained_variance_ratio_)
+
+print("\nPCA Total Variance Explained:")
+print(sum(pca.explained_variance_ratio_))
+
+plt.scatter(
+    X_pca[:, 0],
+    X_pca[:, 1],
+    s=100
+)
+
+for i in range(len(df)):
+    plt.annotate(
+        df["Sample"][i],
+        (X_pca[i, 0], X_pca[i, 1])
+    )
+
+plt.xlabel("Principal Component 1")
+plt.ylabel("Principal Component 2")
+plt.title("PCA - Wine Dataset")
+plt.show()
+
+plt.scatter(
+    X_fa[:, 0],
+    X_fa[:, 1],
+    s=100
+)
+
+for i in range(len(df)):
+    plt.annotate(
+        df["Sample"][i],
+        (X_fa[i, 0], X_fa[i, 1])
+    )
+
+plt.xlabel("Factor 1")
+plt.ylabel("Factor 2")
+plt.title("Factor Analysis - Wine Dataset")
+plt.show()
+
+plt.scatter(
+    X_ica[:, 0],
+    X_ica[:, 1],
+    s=100
+)
+
+for i in range(len(df)):
+    plt.annotate(
+        df["Sample"][i],
+        (X_ica[i, 0], X_ica[i, 1])
+    )
+
+plt.xlabel("Independent Component 1")
+plt.ylabel("Independent Component 2")
+plt.title("ICA - Wine Dataset")
+plt.show()
+
+n_clusters = 2
+
+gmm = GaussianMixture(
+    n_components=n_clusters,
+    random_state=42
+)
+
+gmm_labels = gmm.fit_predict(X_pca)
+
+kmeans = KMeans(
+    n_clusters=n_clusters,
+    random_state=42,
+    n_init=10
+)
+
+kmeans_labels = kmeans.fit_predict(X_pca)
+
+gmm_score = silhouette_score(X_pca, gmm_labels)
+kmeans_score = silhouette_score(X_pca, kmeans_labels)
+
+print("\nGMM Results")
+print("Cluster Labels:")
+print(gmm_labels)
+
+print("Silhouette Score:")
+print(gmm_score)
+
+print("\nK-Means Results")
+print("Cluster Labels:")
+print(kmeans_labels)
+
+print("Silhouette Score:")
+print(kmeans_score)
+
+plt.scatter(
+    X_pca[:, 0],
+    X_pca[:, 1],
+    c=gmm_labels,
+    cmap="viridis",
+    s=100
+)
+
+for i in range(len(df)):
+    plt.annotate(
+        df["Sample"][i],
+        (X_pca[i, 0], X_pca[i, 1])
+    )
+
+plt.xlabel("Principal Component 1")
+plt.ylabel("Principal Component 2")
+plt.title("GMM Clustering using PCA")
+plt.colorbar(label="Cluster")
+plt.show()
+
+plt.scatter(
+    X_pca[:, 0],
+    X_pca[:, 1],
+    c=kmeans_labels,
+    cmap="viridis",
+    s=100
+)
+
+for i in range(len(df)):
+    plt.annotate(
+        df["Sample"][i],
+        (X_pca[i, 0], X_pca[i, 1])
+    )
+
+plt.xlabel("Principal Component 1")
+plt.ylabel("Principal Component 2")
+plt.title("K-Means Clustering using PCA")
+plt.colorbar(label="Cluster")
+plt.show()
