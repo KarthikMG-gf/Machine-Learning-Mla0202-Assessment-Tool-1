@@ -1,0 +1,102 @@
+print("Karthik V")
+
+import pandas as pd
+import warnings
+
+warnings.filterwarnings("ignore")
+
+from pgmpy.models import DiscreteBayesianNetwork
+from pgmpy.estimators import HillClimbSearch
+from pgmpy.inference import VariableElimination
+
+data = {
+    "Age": [
+        "Young", "Young", "Young", "Young",
+        "Middle", "Middle", "Middle", "Middle",
+        "Old", "Old", "Old", "Old",
+        "Young", "Middle", "Old"
+    ],
+
+    "Income": [
+        "Low", "Medium", "High", "Medium",
+        "Low", "Medium", "High", "High",
+        "Low", "Medium", "High", "Medium",
+        "High", "Medium", "Low"
+    ],
+
+    "VehicleType": [
+        "Car", "Bike", "Car", "Bike",
+        "Car", "Car", "Bike", "Car",
+        "Bike", "Car", "Car", "Bike",
+        "Car", "Bike", "Car"
+    ],
+
+    "InsuranceClaim": [
+        "No", "Yes", "No", "Yes",
+        "Yes", "No", "No", "Yes",
+        "Yes", "No", "No", "Yes",
+        "No", "Yes", "Yes"
+    ]
+}
+
+df = pd.DataFrame(data)
+
+print("Historical Customer Data:")
+print(df)
+
+print("\nLearning Bayesian Network Structure...")
+
+hc = HillClimbSearch(df)
+learned_structure = hc.estimate(show_progress=False)
+
+print("\nLearned Network Structure:")
+print(list(learned_structure.edges()))
+
+model = DiscreteBayesianNetwork(learned_structure.edges())
+
+model.add_nodes_from(df.columns)
+
+model.fit(df)
+
+print("\nBayesian Network Model Valid:", model.check_model())
+
+print("\nNetwork Edges:")
+for edge in model.edges():
+    print(edge[0], "->", edge[1])
+
+inference = VariableElimination(model)
+
+new_customer = {
+    "Age": "Young",
+    "Income": "High",
+    "VehicleType": "Car"
+}
+
+print("\nNew Customer:")
+print(new_customer)
+
+evidence = {
+    "Age": new_customer["Age"],
+    "Income": new_customer["Income"],
+    "VehicleType": new_customer["VehicleType"]
+}
+
+result = inference.query(
+    variables=["InsuranceClaim"],
+    evidence=evidence
+)
+
+print("\nInsurance Claim Probability:")
+print(result)
+
+states = result.state_names["InsuranceClaim"]
+
+claim_index = states.index("Yes")
+
+claim_probability = result.values[claim_index]
+
+print(
+    "\nPredicted Probability of Insurance Claim:",
+    round(claim_probability * 100, 2),
+    "%"
+)
