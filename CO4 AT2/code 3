@@ -1,0 +1,101 @@
+print("Karthik V")
+import sklearn_crfsuite
+from sklearn_crfsuite import metrics
+
+def word_features(sentence, i):
+    word = sentence[i]
+
+    features = {
+        'word.lower()': word.lower(),
+        'word.isupper()': word.isupper(),
+        'word.istitle()': word.istitle(),
+        'word.isdigit()': word.isdigit(),
+        'word.length': len(word),
+        'prefix': word[:2],
+        'suffix': word[-2:]
+    }
+
+    if i > 0:
+        prev = sentence[i - 1]
+        features.update({
+            'prev_word.lower()': prev.lower(),
+            'prev_word.istitle()': prev.istitle(),
+            'prev_word.isdigit()': prev.isdigit()
+        })
+    else:
+        features['BOS'] = True
+
+    if i < len(sentence) - 1:
+        next_word = sentence[i + 1]
+        features.update({
+            'next_word.lower()': next_word.lower(),
+            'next_word.istitle()': next_word.istitle(),
+            'next_word.isdigit()': next_word.isdigit()
+        })
+    else:
+        features['EOS'] = True
+
+    return features
+
+
+def sentence_features(sentence):
+    return [word_features(sentence, i) for i in range(len(sentence))]
+
+
+train_sentences = [
+    ["John", "ordered", "iPhone", "15", "with", "Order", "ID", "ORD12345", "and", "reported", "screen", "damage"],
+    ["Priya", "purchased", "Samsung", "Galaxy", "S24", "Order", "ID", "ORD56789", "and", "has", "battery", "problem"],
+    ["Rahul", "bought", "Dell", "Laptop", "Order", "ID", "ORD24680", "and", "reported", "keyboard", "issue"],
+    ["Anita", "ordered", "Sony", "Headphones", "Order", "ID", "ORD13579", "and", "reported", "audio", "problem"]
+]
+
+train_labels = [
+    ["B-CUSTOMER", "O", "B-PRODUCT", "I-PRODUCT", "O", "O", "O", "B-ORDER", "O", "O", "B-ISSUE", "I-ISSUE"],
+    ["B-CUSTOMER", "O", "B-PRODUCT", "I-PRODUCT", "I-PRODUCT", "O", "O", "B-ORDER", "O", "O", "B-ISSUE", "I-ISSUE"],
+    ["B-CUSTOMER", "O", "B-PRODUCT", "I-PRODUCT", "O", "O", "B-ORDER", "O", "O", "B-ISSUE", "I-ISSUE"],
+    ["B-CUSTOMER", "O", "B-PRODUCT", "I-PRODUCT", "O", "O", "O", "B-ORDER", "O", "O", "B-ISSUE"]
+]
+
+X_train = [sentence_features(sentence) for sentence in train_sentences]
+y_train = train_labels
+
+crf = sklearn_crfsuite.CRF(
+    algorithm='lbfgs',
+    c1=0.1,
+    c2=0.1,
+    max_iterations=100
+)
+
+crf.fit(X_train, y_train)
+
+test_sentence = [
+    "Kumar", "ordered", "Apple", "iPhone", "15",
+    "Order", "ID", "ORD99999", "and", "reported",
+    "battery", "issue"
+]
+
+X_test = [sentence_features(test_sentence)]
+y_pred = crf.predict(X_test)
+
+print("Customer Support Email:")
+print(" ".join(test_sentence))
+
+print("\nPredicted Entities:")
+
+for word, label in zip(test_sentence, y_pred[0]):
+    print(word, "->", label)
+
+y_test = [
+    ["B-CUSTOMER", "O", "B-PRODUCT", "I-PRODUCT", "I-PRODUCT",
+     "O", "O", "B-ORDER", "O", "O", "B-ISSUE", "I-ISSUE"]
+]
+
+print("\nModel Evaluation:")
+print("F1 Score:", round(
+    metrics.flat_f1_score(y_test, y_pred, average='weighted'), 2
+))
+
+print("\nEntity Extraction:")
+for word, label in zip(test_sentence, y_pred[0]):
+    if label != "O":
+        print(word, "->", label)
