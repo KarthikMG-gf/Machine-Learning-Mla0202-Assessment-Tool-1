@@ -1,0 +1,110 @@
+print("Karthik V")
+from pgmpy.models import DiscreteBayesianNetwork
+from pgmpy.factors.discrete import TabularCPD
+from pgmpy.inference import VariableElimination
+
+model = DiscreteBayesianNetwork([
+    ('Transaction_Amount', 'Fraud'),
+    ('Transaction_Location', 'Fraud'),
+    ('Login_Device', 'Fraud'),
+    ('Previous_Fraud_History', 'Fraud')
+])
+
+cpd_amount = TabularCPD(
+    variable='Transaction_Amount',
+    variable_card=2,
+    values=[[0.70], [0.30]],
+    state_names={'Transaction_Amount': ['Low', 'High']}
+)
+
+cpd_location = TabularCPD(
+    variable='Transaction_Location',
+    variable_card=2,
+    values=[[0.80], [0.20]],
+    state_names={'Transaction_Location': ['Trusted', 'Unusual']}
+)
+
+cpd_device = TabularCPD(
+    variable='Login_Device',
+    variable_card=2,
+    values=[[0.85], [0.15]],
+    state_names={'Login_Device': ['Known', 'Unknown']}
+)
+
+cpd_history = TabularCPD(
+    variable='Previous_Fraud_History',
+    variable_card=2,
+    values=[[0.90], [0.10]],
+    state_names={'Previous_Fraud_History': ['No', 'Yes']}
+)
+
+cpd_fraud = TabularCPD(
+    variable='Fraud',
+    variable_card=2,
+    values=[
+        [0.99, 0.97, 0.95, 0.90,
+         0.96, 0.92, 0.88, 0.80,
+         0.94, 0.88, 0.80, 0.65,
+         0.85, 0.70, 0.55, 0.30],
+        [0.01, 0.03, 0.05, 0.10,
+         0.04, 0.08, 0.12, 0.20,
+         0.06, 0.12, 0.20, 0.35,
+         0.15, 0.30, 0.45, 0.70]
+    ],
+    evidence=[
+        'Transaction_Amount',
+        'Transaction_Location',
+        'Login_Device',
+        'Previous_Fraud_History'
+    ],
+    evidence_card=[2, 2, 2, 2],
+    state_names={
+        'Fraud': ['No', 'Yes'],
+        'Transaction_Amount': ['Low', 'High'],
+        'Transaction_Location': ['Trusted', 'Unusual'],
+        'Login_Device': ['Known', 'Unknown'],
+        'Previous_Fraud_History': ['No', 'Yes']
+    }
+)
+
+model.add_cpds(
+    cpd_amount,
+    cpd_location,
+    cpd_device,
+    cpd_history,
+    cpd_fraud
+)
+
+print("Bayesian Network Valid:", model.check_model())
+
+inference = VariableElimination(model)
+
+evidence = {
+    'Transaction_Amount': 'High',
+    'Transaction_Location': 'Unusual',
+    'Login_Device': 'Unknown',
+    'Previous_Fraud_History': 'Yes'
+}
+
+result = inference.query(
+    variables=['Fraud'],
+    evidence=evidence
+)
+
+not_fraud_probability = result.values[0]
+fraud_probability = result.values[1]
+
+print("\nTransaction Details")
+print("Transaction Amount     : High")
+print("Transaction Location  : Unusual")
+print("Login Device           : Unknown")
+print("Previous Fraud History : Yes")
+
+print("\nFraud Probability")
+print("Not Fraud :", round(not_fraud_probability, 2))
+print("Fraud     :", round(fraud_probability, 2))
+
+if fraud_probability > 0.5:
+    print("\nPrediction: FRAUDULENT TRANSACTION")
+else:
+    print("\nPrediction: LEGITIMATE TRANSACTION")
