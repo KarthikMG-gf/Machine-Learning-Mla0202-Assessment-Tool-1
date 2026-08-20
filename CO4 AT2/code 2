@@ -1,0 +1,55 @@
+print("Karthik V")
+from hmmlearn import hmm
+import numpy as np
+
+states = ["Healthy", "Warning", "Failure"]
+
+model = hmm.CategoricalHMM(n_components=3, n_iter=100)
+
+model.startprob_ = np.array([
+    0.70,
+    0.20,
+    0.10
+])
+
+model.transmat_ = np.array([
+    [0.80, 0.15, 0.05],
+    [0.10, 0.70, 0.20],
+    [0.02, 0.08, 0.90]
+])
+
+model.emissionprob_ = np.array([
+    [0.80, 0.15, 0.05],
+    [0.20, 0.60, 0.20],
+    [0.05, 0.20, 0.75]
+])
+
+observations = np.array([
+    [0],
+    [0],
+    [1],
+    [1],
+    [2],
+    [2]
+])
+
+log_probability, hidden_states = model.decode(
+    observations,
+    algorithm="viterbi"
+)
+
+print("Sensor Observations:")
+print("0 = Normal")
+print("1 = Abnormal")
+print("2 = Critical")
+
+print("\nObservation Sequence:")
+print([0, 0, 1, 1, 2, 2])
+
+print("\nPredicted Hidden States:")
+
+for i, state in enumerate(hidden_states):
+    print("Observation", i + 1, "->", states[state])
+
+print("\nMost Likely Machine State Sequence:")
+print([states[state] for state in hidden_states])
