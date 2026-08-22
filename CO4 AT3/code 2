@@ -1,0 +1,119 @@
+print("Karthik V")
+import pandas as pd
+from hmmlearn import hmm
+from sklearn_crfsuite import CRF
+from sklearn.metrics import accuracy_score
+
+data = pd.read_csv("driving_activity.csv")
+
+features = ["Speed", "Acceleration", "Steering_Angle", "Brake"]
+activities = data["Activity"].unique()
+
+activity_to_state = {a: i for i, a in enumerate(activities)}
+state_to_activity = {i: a for a, i in activity_to_state.items()}
+
+X = data[features].values
+y = data["Activity"].map(activity_to_state).values
+
+split = int(len(data) * 0.8)
+
+X_train = X[:split]
+X_test = X[split:]
+y_train = y[:split]
+y_test = y[split:]
+
+hmm_model = hmm.GaussianHMM(
+    n_components=len(activities),
+    covariance_type="diag",
+    n_iter=500,
+    tol=0.01,
+    random_state=42
+)
+
+hmm_model.fit(X_train)
+
+hmm_states = hmm_model.predict(X_test)
+hmm_pred = [state_to_activity[s] for s in hmm_states]
+
+actual_labels = [state_to_activity[s] for s in y_test]
+
+hmm_accuracy = accuracy_score(actual_labels, hmm_pred)
+
+crf_train = []
+
+for i in range(len(X_train)):
+    crf_train.append([{
+        "speed": str(X_train[i][0]),
+        "acceleration": str(X_train[i][1]),
+        "steering": str(X_train[i][2]),
+        "brake": str(X_train[i][3])
+    }])
+
+crf_test = []
+
+for i in range(len(X_test)):
+    crf_test.append([{
+        "speed": str(X_test[i][0]),
+        "acceleration": str(X_test[i][1]),
+        "steering": str(X_test[i][2]),
+        "brake": str(X_test[i][3])
+    }])
+
+crf_y_train = [[state_to_activity[y]] for y in y_train]
+
+crf = CRF(
+    algorithm="lbfgs",
+    max_iterations=200,
+    c1=0.1,
+    c2=0.1
+)
+
+crf.fit(crf_train, crf_y_train)
+
+crf_pred = crf.predict(crf_test)
+crf_pred_labels = [x[0] for x in crf_pred]
+
+crf_accuracy = accuracy_score(actual_labels, crf_pred_labels)
+
+print("HMM Accuracy:", round(hmm_accuracy * 100, 2), "%")
+print("CRF Accuracy:", round(crf_accuracy * 100, 2), "%")
+
+print("\nMODEL COMPARISON")
+
+print("\n1. State Representation")
+print("HMM: Hidden states represent driving activities.")
+print("CRF: States directly represent output activity labels.")
+
+print("\n2. Observation Modeling")
+print("HMM: Uses emission probabilities to model observations.")
+print("CRF: Uses feature functions to relate observations and labels.")
+
+print("\n3. Learning Approach")
+print("HMM: Learns transition and emission probabilities.")
+print("CRF: Learns feature weights using conditional probability.")
+
+print("\n4. Prediction Accuracy")
+print("HMM:", round(hmm_accuracy * 100, 2), "%")
+print("CRF:", round(crf_accuracy * 100, 2), "%")
+
+print("\n5. Contextual Features")
+print("HMM: Limited contextual feature handling.")
+print("CRF: Handles multiple contextual and overlapping features.")
+
+print("\n6. Computational Efficiency")
+print("HMM: Generally more computationally efficient.")
+print("CRF: More computationally expensive during training.")
+
+print("\n7. Scalability")
+print("HMM: Good for simple sequence problems.")
+print("CRF: Better for complex feature-rich sequence labeling.")
+
+if crf_accuracy > hmm_accuracy:
+    print("\nRecommended Model: CRF")
+    print("Reason: CRF provides better sequence labeling with contextual sensor features.")
+elif hmm_accuracy > crf_accuracy:
+    print("\nRecommended Model: HMM")
+    print("Reason: HMM provides better accuracy for this dataset.")
+else:
+    print("\nRecommended Model: CRF")
+    print("Reason: CRF handles contextual features more effectively.")
