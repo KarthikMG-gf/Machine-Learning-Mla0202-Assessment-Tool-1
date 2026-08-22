@@ -1,0 +1,81 @@
+print("Karthik V")
+import pandas as pd
+from pgmpy.models import DiscreteBayesianNetwork, DiscreteMarkovNetwork
+from pgmpy.factors.discrete import TabularCPD
+from pgmpy.inference import VariableElimination
+
+data = pd.read_csv("disease_dataset.csv")
+
+bn = DiscreteBayesianNetwork([
+    ("Fever", "Disease"),
+    ("Cough", "Disease"),
+    ("Fatigue", "Disease")
+])
+
+cpd_fever = TabularCPD(
+    variable="Fever",
+    variable_card=2,
+    values=[[0.5], [0.5]]
+)
+
+cpd_cough = TabularCPD(
+    variable="Cough",
+    variable_card=2,
+    values=[[0.5], [0.5]]
+)
+
+cpd_fatigue = TabularCPD(
+    variable="Fatigue",
+    variable_card=2,
+    values=[[0.5], [0.5]]
+)
+
+cpd_disease = TabularCPD(
+    variable="Disease",
+    variable_card=4,
+    values=[
+        [0.80, 0.70, 0.60, 0.10, 0.70, 0.60, 0.20, 0.05],
+        [0.10, 0.15, 0.20, 0.10, 0.15, 0.20, 0.30, 0.10],
+        [0.05, 0.10, 0.10, 0.10, 0.10, 0.10, 0.40, 0.15],
+        [0.05, 0.05, 0.10, 0.70, 0.05, 0.10, 0.10, 0.70]
+    ],
+    evidence=["Fever", "Cough", "Fatigue"],
+    evidence_card=[2, 2, 2]
+)
+
+bn.add_cpds(
+    cpd_fever,
+    cpd_cough,
+    cpd_fatigue,
+    cpd_disease
+)
+
+print("Bayesian Network Valid:", bn.check_model())
+
+inference = VariableElimination(bn)
+
+result = inference.query(
+    variables=["Disease"],
+    evidence={
+        "Fever": 1,
+        "Cough": 1,
+        "Fatigue": 1
+    }
+)
+
+print("\nBayesian Network Result:")
+print(result)
+
+mrf = DiscreteMarkovNetwork([
+    ("Fever", "Disease"),
+    ("Cough", "Disease"),
+    ("Fatigue", "Disease")
+])
+
+print("\nMarkov Random Field:")
+print("Nodes:", list(mrf.nodes()))
+print("Edges:", list(mrf.edges()))
+
+print("\nComparison:")
+print("Bayesian Network: Directed graph")
+print("Markov Random Field: Undirected graph")
