@@ -1,0 +1,165 @@
+print("Karthik V")
+import pandas as pd
+import networkx as nx
+import matplotlib.pyplot as plt
+from pgmpy.models import DiscreteBayesianNetwork, DiscreteMarkovNetwork
+from pgmpy.factors.discrete import TabularCPD
+from pgmpy.inference import VariableElimination
+
+data = pd.read_csv("financial_risk.csv")
+
+bn = DiscreteBayesianNetwork([
+    ("Income", "Risk"),
+    ("CreditScore", "Risk"),
+    ("PreviousDefault", "Risk"),
+    ("TransactionFrequency", "Risk")
+])
+
+cpd_income = TabularCPD(
+    "Income",
+    2,
+    [[0.5], [0.5]],
+    state_names={"Income": ["Low", "High"]}
+)
+
+cpd_credit = TabularCPD(
+    "CreditScore",
+    2,
+    [[0.5], [0.5]],
+    state_names={"CreditScore": ["Low", "High"]}
+)
+
+cpd_default = TabularCPD(
+    "PreviousDefault",
+    2,
+    [[0.7], [0.3]],
+    state_names={"PreviousDefault": ["No", "Yes"]}
+)
+
+cpd_transaction = TabularCPD(
+    "TransactionFrequency",
+    2,
+    [[0.5], [0.5]],
+    state_names={"TransactionFrequency": ["Low", "High"]}
+)
+
+cpd_risk = TabularCPD(
+    "Risk",
+    3,
+    [
+        [0.80, 0.70, 0.60, 0.40, 0.70, 0.60, 0.50, 0.30,
+         0.75, 0.65, 0.55, 0.35, 0.60, 0.50, 0.40, 0.20],
+
+        [0.15, 0.20, 0.25, 0.30, 0.20, 0.25, 0.30, 0.30,
+         0.20, 0.25, 0.30, 0.35, 0.25, 0.30, 0.30, 0.30],
+
+        [0.05, 0.10, 0.15, 0.30, 0.10, 0.15, 0.20, 0.40,
+         0.05, 0.10, 0.15, 0.30, 0.15, 0.20, 0.30, 0.50]
+    ],
+    evidence=[
+        "Income",
+        "CreditScore",
+        "PreviousDefault",
+        "TransactionFrequency"
+    ],
+    evidence_card=[2, 2, 2, 2],
+    state_names={
+        "Risk": ["Low", "Medium", "High"],
+        "Income": ["Low", "High"],
+        "CreditScore": ["Low", "High"],
+        "PreviousDefault": ["No", "Yes"],
+        "TransactionFrequency": ["Low", "High"]
+    }
+)
+
+bn.add_cpds(
+    cpd_income,
+    cpd_credit,
+    cpd_default,
+    cpd_transaction,
+    cpd_risk
+)
+
+print("Bayesian Network Valid:", bn.check_model())
+
+inference = VariableElimination(bn)
+
+result = inference.query(
+    variables=["Risk"],
+    evidence={
+        "Income": "High",
+        "CreditScore": "High",
+        "PreviousDefault": "No",
+        "TransactionFrequency": "High"
+    }
+)
+
+print("\nBayesian Network Result:")
+print(result)
+
+mrf = DiscreteMarkovNetwork([
+    ("Income", "Risk"),
+    ("CreditScore", "Risk"),
+    ("PreviousDefault", "Risk"),
+    ("TransactionFrequency", "Risk")
+])
+
+print("\nMarkov Random Field:")
+print("Nodes:", list(mrf.nodes()))
+print("Edges:", list(mrf.edges()))
+
+print("\nComparison:")
+print("Bayesian Network: Directed graph")
+print("Markov Random Field: Undirected graph")
+print("Bayesian Network: Directional dependencies")
+print("Markov Random Field: Mutual dependencies")
+print("Recommended Model: Bayesian Network")
+
+plt.figure(figsize=(8, 6))
+
+G = nx.DiGraph()
+
+G.add_edges_from([
+    ("Income", "Risk"),
+    ("CreditScore", "Risk"),
+    ("PreviousDefault", "Risk"),
+    ("TransactionFrequency", "Risk")
+])
+
+pos = nx.spring_layout(G, seed=42)
+
+nx.draw(
+    G,
+    pos,
+    with_labels=True,
+    node_size=3000,
+    arrows=True,
+    font_size=9
+)
+
+plt.title("Bayesian Network - Financial Risk")
+plt.show()
+
+plt.figure(figsize=(8, 6))
+
+M = nx.Graph()
+
+M.add_edges_from([
+    ("Income", "Risk"),
+    ("CreditScore", "Risk"),
+    ("PreviousDefault", "Risk"),
+    ("TransactionFrequency", "Risk")
+])
+
+pos = nx.spring_layout(M, seed=42)
+
+nx.draw(
+    M,
+    pos,
+    with_labels=True,
+    node_size=3000,
+    font_size=9
+)
+
+plt.title("Markov Random Field - Financial Risk")
+plt.show()
