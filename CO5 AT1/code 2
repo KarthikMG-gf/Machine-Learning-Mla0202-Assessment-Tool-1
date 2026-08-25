@@ -1,0 +1,115 @@
+print("Karthik V")
+
+import numpy as np
+import random
+
+NUM_ADS = 5
+NUM_INTERACTIONS = 10000
+
+TRUE_CLICK_PROBABILITIES = [
+    0.05,
+    0.08,
+    0.12,
+    0.10,
+    0.07
+]
+
+counts = np.zeros(NUM_ADS)
+rewards = np.zeros(NUM_ADS)
+
+total_reward = 0
+regret = 0
+
+cumulative_rewards = []
+cumulative_regret = []
+
+random.seed(42)
+np.random.seed(42)
+
+for t in range(1, NUM_INTERACTIONS + 1):
+
+    if t <= NUM_ADS:
+        ad = t - 1
+
+    else:
+        ucb_values = []
+
+        for i in range(NUM_ADS):
+
+            average_reward = rewards[i] / counts[i]
+
+            confidence = np.sqrt(
+                (2 * np.log(t)) / counts[i]
+            )
+
+            ucb = average_reward + confidence
+
+            ucb_values.append(ucb)
+
+        ad = np.argmax(ucb_values)
+
+    click = 1 if random.random() < TRUE_CLICK_PROBABILITIES[ad] else 0
+
+    counts[ad] += 1
+    rewards[ad] += click
+
+    total_reward += click
+
+    optimal_probability = max(TRUE_CLICK_PROBABILITIES)
+
+    regret += optimal_probability - TRUE_CLICK_PROBABILITIES[ad]
+
+    cumulative_rewards.append(total_reward)
+    cumulative_regret.append(regret)
+
+
+estimated_probabilities = rewards / counts
+
+print("=" * 50)
+print("K-ARMED BANDIT - ONLINE ADVERTISEMENT")
+print("=" * 50)
+
+print("\nNumber of Advertisements:", NUM_ADS)
+print("Total Interactions:", NUM_INTERACTIONS)
+print("Strategy: UCB")
+
+print("\nAdvertisement Results:")
+
+for i in range(NUM_ADS):
+    print(
+        "Ad", i + 1,
+        "| Displays:", int(counts[i]),
+        "| Clicks:", int(rewards[i]),
+        "| True CTR:", TRUE_CLICK_PROBABILITIES[i],
+        "| Estimated CTR:", round(estimated_probabilities[i], 4)
+    )
+
+best_ad = np.argmax(estimated_probabilities)
+
+print("\nBest Advertisement:")
+print("Ad", best_ad + 1)
+
+print(
+    "Estimated CTR:",
+    round(estimated_probabilities[best_ad], 4)
+)
+
+print(
+    "Total Clicks:",
+    int(total_reward)
+)
+
+print(
+    "Overall CTR:",
+    round(total_reward / NUM_INTERACTIONS, 4)
+)
+
+print(
+    "Cumulative Regret:",
+    round(regret, 4)
+)
+
+print(
+    "\nOptimal Advertisement According to True CTR: Ad",
+    np.argmax(TRUE_CLICK_PROBABILITIES) + 1
+)
