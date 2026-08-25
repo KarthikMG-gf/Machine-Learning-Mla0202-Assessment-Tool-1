@@ -1,0 +1,355 @@
+print("Karthik V")
+
+import numpy as np
+import random
+
+ROWS = 6
+COLS = 6
+
+START = (0, 0)
+GOAL = (5, 5)
+
+OBSTACLES = {
+    (1, 1), (1, 2),
+    (2, 2),
+    (3, 1), (3, 2), (3, 3),
+    (4, 4)
+}
+
+ACTIONS = {
+    "Up": (-1, 0),
+    "Down": (1, 0),
+    "Left": (0, -1),
+    "Right": (0, 1)
+}
+
+ACTION_NAMES = list(ACTIONS.keys())
+
+GAMMA = 0.95
+INTENDED_PROBABILITY = 0.8
+MAX_MOVES = 25
+BATTERY_CAPACITY = 30
+
+STEP_COST = -1
+OBSTACLE_PENALTY = -10
+GOAL_REWARD = 100
+PROGRESS_REWARD = 2
+
+
+def valid_state(state):
+    r, c = state
+    return (
+        0 <= r < ROWS
+        and 0 <= c < COLS
+        and state not in OBSTACLES
+    )
+
+
+def manhattan_distance(a, b):
+    return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+
+def move(state, action):
+    r, c = state
+    dr, dc = ACTIONS[action]
+
+    new_state = (r + dr, c + dc)
+
+    if not (0 <= new_state[0] < ROWS and
+            0 <= new_state[1] < COLS):
+
+        return state, OBSTACLE_PENALTY
+
+    if new_state in OBSTACLES:
+        return state, OBSTACLE_PENALTY
+
+    if new_state == GOAL:
+        return new_state, GOAL_REWARD
+
+    old_distance = manhattan_distance(state, GOAL)
+    new_distance = manhattan_distance(new_state, GOAL)
+
+    reward = STEP_COST
+
+    if new_distance < old_distance:
+        reward += PROGRESS_REWARD
+
+    return new_state, reward
+
+
+def transition_model(state, intended_action):
+    other_actions = [
+        action for action in ACTION_NAMES
+        if action != intended_action
+    ]
+
+    transitions = []
+
+    transitions.append(
+        (INTENDED_PROBABILITY, intended_action)
+    )
+
+    remaining_probability = (
+        1 - INTENDED_PROBABILITY
+    )
+
+    for action in other_actions:
+        transitions.append(
+            (remaining_probability / len(other_actions), action)
+        )
+
+    return transitions
+
+
+states = []
+
+for r in range(ROWS):
+    for c in range(COLS):
+        state = (r, c)
+
+        if valid_state(state):
+            states.append(state)
+
+
+V = {state: 0.0 for state in states}
+
+policy = {
+    state: "Right"
+    for state in states
+}
+
+V[GOAL] = 0.0
+
+for iteration in range(1000):
+
+    delta = 0
+
+    for state in states:
+
+        if state == GOAL:
+            continue
+
+        action_values = {}
+
+        for action in ACTION_NAMES:
+
+            value = 0
+
+            for probability, actual_action in transition_model(
+                state, action
+            ):
+
+                next_state, reward = move(
+                    state,
+                    actual_action
+                )
+
+                future_value = V.get(
+                    next_state,
+                    V[state]
+                )
+
+                value += probability * (
+                    reward + GAMMA * future_value
+                )
+
+            action_values[action] = value
+
+        best_action = max(
+            action_values,
+            key=action_values.get
+        )
+
+        best_value = action_values[best_action]
+
+        delta = max(
+            delta,
+            abs(V[state] - best_value)
+        )
+
+        V[state] = best_value
+        policy[state] = best_action
+
+    if delta < 0.0001:
+        break
+
+
+def epsilon_greedy_action(state, epsilon=0.1):
+
+    if random.random() < epsilon:
+
+        return random.choice(ACTION_NAMES)
+
+    return policy[state]
+
+
+def simulate_robot(epsilon=0.0):
+
+    state = START
+    path = [state]
+
+    total_reward = 0
+    battery_used = 0
+
+    for step in range(1, MAX_MOVES + 1):
+
+        if state == GOAL:
+            break
+
+        action = epsilon_greedy_action(
+            state,
+            epsilon
+        )
+
+        transitions = transition_model(
+            state,
+            action
+        )
+
+        probabilities = [
+            probability
+            for probability, _ in transitions
+        ]
+
+        actual_actions = [
+            actual_action
+            for _, actual_action in transitions
+        ]
+
+        actual_action = random.choices(
+            actual_actions,
+            weights=probabilities
+        )[0]
+
+        next_state, reward = move(
+            state,
+            actual_action
+        )
+
+        total_reward += reward
+        battery_used += 1
+
+        path.append(next_state)
+
+        state = next_state
+
+        if state == GOAL:
+            break
+
+    return (
+        path,
+        total_reward,
+        battery_used,
+        state == GOAL
+    )
+
+
+print("=" * 60)
+print("REINFORCEMENT LEARNING - AUTONOMOUS WAREHOUSE ROBOT")
+print("=" * 60)
+
+print("\nEnvironment:")
+print("Grid Size:", ROWS, "x", COLS)
+print("Start:", START)
+print("Destination:", GOAL)
+print("Maximum Moves:", MAX_MOVES)
+print("Battery Capacity:", BATTERY_CAPACITY)
+print("Movement:", "Up, Down, Left, Right")
+print("Intended Action Probability:", INTENDED_PROBABILITY)
+print("Exploration Strategy: Epsilon-Greedy")
+print("Planning Algorithm: Value Iteration")
+
+print("\nObstacles:")
+print(OBSTACLES)
+
+print("\nOptimal Policy:")
+print()
+
+for r in range(ROWS):
+
+    row = []
+
+    for c in range(COLS):
+
+        state = (r, c)
+
+        if state in OBSTACLES:
+            row.append("####")
+
+        elif state == START:
+            row.append(" S  ")
+
+        elif state == GOAL:
+            row.append(" G  ")
+
+        else:
+
+            symbols = {
+                "Up": " ↑  ",
+                "Down": " ↓  ",
+                "Left": " ←  ",
+                "Right": " →  "
+            }
+
+            row.append(
+                symbols[policy[state]]
+            )
+
+    print("".join(row))
+
+
+random.seed(42)
+
+path, total_reward, battery_used, reached_goal = simulate_robot(
+    epsilon=0.0
+)
+
+print("\n" + "=" * 60)
+print("ROBOT NAVIGATION RESULT")
+print("=" * 60)
+
+print("\nSelected Path:")
+
+for i, state in enumerate(path):
+    print(
+        "Step",
+        i,
+        ":",
+        state
+    )
+
+print("\nNumber of Moves:", battery_used)
+print("Battery Used:", battery_used)
+print(
+    "Battery Remaining:",
+    BATTERY_CAPACITY - battery_used
+)
+
+print("Total Reward:", total_reward)
+
+print(
+    "Destination Reached:",
+    "YES" if reached_goal else "NO"
+)
+
+print(
+    "Within 25-Move Limit:",
+    "YES" if battery_used <= MAX_MOVES else "NO"
+)
+
+print(
+    "Within Battery Limit:",
+    "YES" if battery_used <= BATTERY_CAPACITY else "NO"
+)
+
+if (
+    reached_goal
+    and battery_used <= MAX_MOVES
+    and battery_used <= BATTERY_CAPACITY
+):
+
+    print("\nFINAL RESULT: OPTIMAL NAVIGATION SUCCESS")
+
+else:
+
+    print("\nFINAL RESULT: CONSTRAINT NOT SATISFIED")
