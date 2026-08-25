@@ -1,0 +1,195 @@
+print("Karthik V")
+import numpy as np
+import pandas as pd
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+from scipy.stats import norm
+
+np.random.seed(42)
+
+N = 1_000_000
+
+data = pd.DataFrame({
+    "Age": np.random.randint(18, 81, N),
+    "Income": np.random.randint(20000, 150001, N),
+    "BMI": np.random.normal(27, 5, N),
+    "BloodSugar": np.random.normal(110, 30, N),
+    "BloodPressure": np.random.normal(120, 15, N)
+})
+
+risk = (
+    0.02 * (data["Age"] - 40)
+    + 0.04 * (data["BMI"] - 25)
+    + 0.03 * (data["BloodSugar"] - 100)
+    + 0.01 * (data["BloodPressure"] - 120)
+)
+
+probability = 1 / (1 + np.exp(-(-4 + risk)))
+
+data["Disease"] = (
+    np.random.random(N) < probability
+).astype(int)
+
+print("Complete Dataset:")
+print(data.head())
+
+print("\nTotal Records:", len(data))
+
+print("\nDisease Distribution:")
+print(data["Disease"].value_counts())
+
+sample_size = 100000
+
+sample, remaining = train_test_split(
+    data,
+    train_size=sample_size,
+    stratify=data["Disease"],
+    random_state=42
+)
+
+print("\nStratified Sample:")
+print("Sample Size:", len(sample))
+
+print("\nSample Disease Distribution:")
+print(sample["Disease"].value_counts())
+
+X = sample[
+    [
+        "Age",
+        "Income",
+        "BMI",
+        "BloodSugar",
+        "BloodPressure"
+    ]
+]
+
+y = sample["Disease"]
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.20,
+    stratify=y,
+    random_state=42
+)
+
+scaler = StandardScaler()
+
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+model = LogisticRegression(
+    max_iter=1000,
+    random_state=42
+)
+
+model.fit(X_train, y_train)
+
+y_pred = model.predict(X_test)
+
+accuracy = accuracy_score(y_test, y_pred)
+
+print("\nModel Performance:")
+print("Accuracy:", round(accuracy * 100, 2), "%")
+
+n = len(y_test)
+
+standard_error = np.sqrt(
+    (accuracy * (1 - accuracy)) / n
+)
+
+z = norm.ppf(0.975)
+
+lower = accuracy - z * standard_error
+upper = accuracy + z * standard_error
+
+lower = max(0, lower)
+upper = min(1, upper)
+
+print("\n95% Confidence Interval:")
+print(
+    round(lower * 100, 2),
+    "% to",
+    round(upper * 100, 2),
+    "%"
+)
+
+print("\nSample Complexity Analysis:")
+
+sample_sizes = [
+    10000,
+    25000,
+    50000,
+    100000
+]
+
+for size in sample_sizes:
+
+    small_sample, _ = train_test_split(
+        data,
+        train_size=size,
+        stratify=data["Disease"],
+        random_state=42
+    )
+
+    X_small = small_sample[
+        [
+            "Age",
+            "Income",
+            "BMI",
+            "BloodSugar",
+            "BloodPressure"
+        ]
+    ]
+
+    y_small = small_sample["Disease"]
+
+    X_tr, X_te, y_tr, y_te = train_test_split(
+        X_small,
+        y_small,
+        test_size=0.20,
+        stratify=y_small,
+        random_state=42
+    )
+
+    scaler_small = StandardScaler()
+
+    X_tr = scaler_small.fit_transform(X_tr)
+    X_te = scaler_small.transform(X_te)
+
+    model_small = LogisticRegression(
+        max_iter=1000,
+        random_state=42
+    )
+
+    model_small.fit(X_tr, y_tr)
+
+    prediction = model_small.predict(X_te)
+
+    acc = accuracy_score(y_te, prediction)
+
+    print(
+        "Sample Size:",
+        size,
+        "| Accuracy:",
+        round(acc * 100, 2),
+        "%"
+    )
+
+print("\nFinal Decision:")
+
+if accuracy >= 0.95 and lower >= 0.95:
+    print("Required accuracy and 95% confidence achieved.")
+else:
+    print("Increase sample size or improve the model.")
+
+print("\nSampling Method: Stratified Sampling")
+print("Model: Logistic Regression")
+print("Population: 1,000,000")
+print("Training Sample: 100,000")
+print("Memory Constraint: 8 GB")
+print("Required Accuracy: 95%")
+print("Required Confidence: 95%")
