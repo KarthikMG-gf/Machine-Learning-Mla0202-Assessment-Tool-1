@@ -1,0 +1,34 @@
+print("Karthik V")
+import random
+
+N = 10000
+on_time_count = 0
+
+for i in range(N):
+
+    traffic = random.choice(["Low", "Medium", "High"])
+
+    if traffic == "Low":
+        delivery_time = random.uniform(30, 40)
+
+    elif traffic == "Medium":
+        delivery_time = random.uniform(40, 60)
+
+    else:
+        delivery_time = random.uniform(60, 90)
+
+    if delivery_time <= 60:
+        on_time_count += 1
+
+estimated_probability = on_time_count / N
+
+print("Monte Carlo Simulation")
+print("----------------------")
+print("Total Simulations:", N)
+print("On-Time Deliveries:", on_time_count)
+print("Late Deliveries:", N - on_time_count)
+print(
+    "Estimated Probability of On-Time Delivery:",
+    round(estimated_probability * 100, 2),
+    "%"
+)
