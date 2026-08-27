@@ -1,0 +1,305 @@
+print("Karthik V")
+import random
+
+ROWS = 5
+COLS = 5
+
+START = (0, 0)
+GOAL = (4, 4)
+
+OBSTACLES = {
+    (1, 1),
+    (1, 2),
+    (2, 2),
+    (3, 3)
+}
+
+ACTIONS = {
+    "Up": (-1, 0),
+    "Down": (1, 0),
+    "Left": (0, -1),
+    "Right": (0, 1)
+}
+
+GAMMA = 0.9
+THETA = 0.001
+
+MOVE_COST = -1
+OBSTACLE_COST = -10
+DELIVERY_REWARD = 100
+
+
+def valid_state(state):
+    r, c = state
+
+    return (
+        0 <= r < ROWS
+        and 0 <= c < COLS
+        and state not in OBSTACLES
+    )
+
+
+def get_next_state(state, action):
+
+    r, c = state
+    dr, dc = ACTIONS[action]
+
+    next_state = (r + dr, c + dc)
+
+    if not (0 <= next_state[0] < ROWS and
+            0 <= next_state[1] < COLS):
+        return state, OBSTACLE_COST
+
+    if next_state in OBSTACLES:
+        return state, OBSTACLE_COST
+
+    if next_state == GOAL:
+        return next_state, DELIVERY_REWARD
+
+    return next_state, MOVE_COST
+
+
+states = []
+
+for r in range(ROWS):
+    for c in range(COLS):
+
+        state = (r, c)
+
+        if valid_state(state):
+            states.append(state)
+
+
+policy = {}
+
+for state in states:
+
+    if state == GOAL:
+        policy[state] = "Goal"
+
+    else:
+        policy[state] = random.choice(
+            list(ACTIONS.keys())
+        )
+
+
+V = {}
+
+for state in states:
+    V[state] = 0.0
+
+
+policy_iteration = 0
+
+
+while True:
+
+    policy_iteration += 1
+
+    while True:
+
+        delta = 0
+
+        for state in states:
+
+            if state == GOAL:
+                continue
+
+            old_value = V[state]
+
+            action = policy[state]
+
+            next_state, reward = get_next_state(
+                state,
+                action
+            )
+
+            V[state] = (
+                reward
+                + GAMMA * V[next_state]
+            )
+
+            delta = max(
+                delta,
+                abs(old_value - V[state])
+            )
+
+        if delta < THETA:
+            break
+
+    policy_stable = True
+
+    for state in states:
+
+        if state == GOAL:
+            continue
+
+        old_action = policy[state]
+
+        best_action = None
+        best_value = float("-inf")
+
+        for action in ACTIONS:
+
+            next_state, reward = get_next_state(
+                state,
+                action
+            )
+
+            action_value = (
+                reward
+                + GAMMA * V[next_state]
+            )
+
+            if action_value > best_value:
+
+                best_value = action_value
+                best_action = action
+
+        policy[state] = best_action
+
+        if old_action != best_action:
+            policy_stable = False
+
+    if policy_stable:
+        break
+
+
+print("=" * 55)
+print("POLICY ITERATION - AUTONOMOUS DRONE NAVIGATION")
+print("=" * 55)
+
+print("\nEnvironment:")
+print("Grid Size:", ROWS, "x", COLS)
+print("Start:", START)
+print("Destination:", GOAL)
+print("Discount Factor:", GAMMA)
+print("Energy Cost per Move:", abs(MOVE_COST))
+
+print("\nObstacles:")
+
+for obstacle in sorted(OBSTACLES):
+    print(obstacle)
+
+
+print("\nNumber of Policy Iterations:", policy_iteration)
+
+
+print("\nOptimal Value Function:")
+
+for r in range(ROWS):
+
+    row = []
+
+    for c in range(COLS):
+
+        state = (r, c)
+
+        if state in OBSTACLES:
+            row.append("  ####")
+
+        else:
+            row.append(
+                f"{V[state]:7.2f}"
+            )
+
+    print(" ".join(row))
+
+
+symbols = {
+    "Up": "↑",
+    "Down": "↓",
+    "Left": "←",
+    "Right": "→",
+    "Goal": "G"
+}
+
+
+print("\nOptimal Drone Policy:")
+
+for r in range(ROWS):
+
+    row = []
+
+    for c in range(COLS):
+
+        state = (r, c)
+
+        if state in OBSTACLES:
+            row.append("#")
+
+        elif state == START:
+            row.append("S")
+
+        else:
+            row.append(
+                symbols[policy[state]]
+            )
+
+    print(" ".join(row))
+
+
+print("\nOptimal Policy for Each State:")
+
+for state in states:
+
+    print(
+        state,
+        "->",
+        policy[state],
+        "| Value =",
+        round(V[state], 2)
+    )
+
+
+print("\nDrone Navigation Path:")
+
+state = START
+path = [state]
+total_energy = 0
+total_reward = 0
+
+for step in range(25):
+
+    if state == GOAL:
+        break
+
+    action = policy[state]
+
+    next_state, reward = get_next_state(
+        state,
+        action
+    )
+
+    if next_state == state:
+        break
+
+    state = next_state
+
+    path.append(state)
+
+    total_energy += 1
+    total_reward += reward
+
+
+for i, state in enumerate(path):
+
+    print(
+        "Step",
+        i,
+        ":",
+        state
+    )
+
+
+print("\nTotal Moves:", total_energy)
+print("Energy Consumed:", total_energy)
+print("Total Reward:", total_reward)
+
+if path[-1] == GOAL:
+    print("Package Delivered: YES")
+else:
+    print("Package Delivered: NO")
+
+print("\nPolicy Stable: YES")
+print("Optimal Policy Found: YES")
