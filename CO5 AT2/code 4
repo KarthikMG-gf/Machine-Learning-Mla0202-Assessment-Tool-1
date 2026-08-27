@@ -1,0 +1,77 @@
+print("Karthik V")
+import random
+
+states = [
+    "Start",
+    "Level 1",
+    "Level 2",
+    "Level 3",
+    "Level 4",
+    "Goal"
+]
+
+rewards = {
+    "Start": 0,
+    "Level 1": 5,
+    "Level 2": 10,
+    "Level 3": 15,
+    "Level 4": 20,
+    "Goal": 100
+}
+
+alpha = 0.1
+gamma = 0.9
+episodes = 1000
+
+V = {}
+
+for state in states:
+    V[state] = 0.0
+
+V["Goal"] = 0.0
+
+for episode in range(episodes):
+
+    current_state = "Start"
+
+    while current_state != "Goal":
+
+        current_index = states.index(current_state)
+
+        next_state = states[current_index + 1]
+
+        reward = rewards[next_state]
+
+        td_target = reward + gamma * V[next_state]
+
+        td_error = td_target - V[current_state]
+
+        V[current_state] = (
+            V[current_state]
+            + alpha * td_error
+        )
+
+        current_state = next_state
+
+
+print("=" * 50)
+print("TEMPORAL DIFFERENCE LEARNING")
+print("GAME SCORE PREDICTION")
+print("=" * 50)
+
+print("\nLearning Parameters:")
+print("Learning Rate (Alpha):", alpha)
+print("Discount Factor (Gamma):", gamma)
+print("Number of Episodes:", episodes)
+
+print("\nLearned State Values:")
+
+for state in states:
+    print(
+        state,
+        "->",
+        round(V[state], 2)
+    )
+
+print("\nPredicted Game Score from Start:")
+print(round(V["Start"], 2))
