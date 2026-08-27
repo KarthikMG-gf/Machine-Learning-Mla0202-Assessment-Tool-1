@@ -1,0 +1,283 @@
+print("Karthik V")
+import numpy as np
+
+ROWS = 5
+COLS = 5
+
+START = (0, 0)
+GOAL = (4, 4)
+
+OBSTACLES = {
+    (1, 1),
+    (1, 2),
+    (2, 2),
+    (3, 3)
+}
+
+ACTIONS = {
+    "Up": (-1, 0),
+    "Down": (1, 0),
+    "Left": (0, -1),
+    "Right": (0, 1)
+}
+
+GAMMA = 0.9
+THETA = 0.001
+
+STEP_REWARD = -1
+OBSTACLE_REWARD = -10
+GOAL_REWARD = 100
+
+
+def valid_state(state):
+    r, c = state
+
+    return (
+        0 <= r < ROWS
+        and 0 <= c < COLS
+        and state not in OBSTACLES
+    )
+
+
+def get_next_state(state, action):
+
+    r, c = state
+    dr, dc = ACTIONS[action]
+
+    next_state = (r + dr, c + dc)
+
+    if not valid_state(next_state):
+        return state, OBSTACLE_REWARD
+
+    if next_state == GOAL:
+        return next_state, GOAL_REWARD
+
+    return next_state, STEP_REWARD
+
+
+states = []
+
+for r in range(ROWS):
+    for c in range(COLS):
+
+        state = (r, c)
+
+        if valid_state(state):
+            states.append(state)
+
+
+V = {}
+
+for state in states:
+    V[state] = 0.0
+
+
+iteration = 0
+
+while True:
+
+    iteration += 1
+
+    delta = 0
+
+    new_V = V.copy()
+
+    for state in states:
+
+        if state == GOAL:
+            new_V[state] = 0
+            continue
+
+        action_values = []
+
+        for action in ACTIONS:
+
+            next_state, reward = get_next_state(
+                state,
+                action
+            )
+
+            value = reward + GAMMA * V[next_state]
+
+            action_values.append(value)
+
+        best_value = max(action_values)
+
+        new_V[state] = best_value
+
+        delta = max(
+            delta,
+            abs(V[state] - best_value)
+        )
+
+    V = new_V
+
+    if delta < THETA:
+        break
+
+
+policy = {}
+
+for state in states:
+
+    if state == GOAL:
+        policy[state] = "Goal"
+        continue
+
+    best_action = None
+    best_value = float("-inf")
+
+    for action in ACTIONS:
+
+        next_state, reward = get_next_state(
+            state,
+            action
+        )
+
+        value = reward + GAMMA * V[next_state]
+
+        if value > best_value:
+
+            best_value = value
+            best_action = action
+
+    policy[state] = best_action
+
+
+print("=" * 50)
+print("VALUE ITERATION - ROBOT PATH PLANNING")
+print("=" * 50)
+
+print("\nGrid:")
+print("S = Start")
+print("G = Goal")
+print("# = Obstacle")
+
+for r in range(ROWS):
+
+    row = []
+
+    for c in range(COLS):
+
+        state = (r, c)
+
+        if state == START:
+            row.append(" S ")
+
+        elif state == GOAL:
+            row.append(" G ")
+
+        elif state in OBSTACLES:
+            row.append(" # ")
+
+        else:
+            row.append(" . ")
+
+    print("".join(row))
+
+
+print("\nNumber of Iterations:", iteration)
+
+print("\nOptimal Value Function:")
+
+for r in range(ROWS):
+
+    row = []
+
+    for c in range(COLS):
+
+        state = (r, c)
+
+        if state in OBSTACLES:
+            row.append("  #### ")
+
+        else:
+            row.append(
+                f"{V[state]:7.2f}"
+            )
+
+    print(" ".join(row))
+
+
+print("\nOptimal Policy:")
+
+symbols = {
+    "Up": "↑",
+    "Down": "↓",
+    "Left": "←",
+    "Right": "→",
+    "Goal": "G"
+}
+
+for r in range(ROWS):
+
+    row = []
+
+    for c in range(COLS):
+
+        state = (r, c)
+
+        if state in OBSTACLES:
+            row.append("#")
+
+        else:
+            row.append(
+                symbols[policy[state]]
+            )
+
+    print(" ".join(row))
+
+
+print("\nOptimal Policy for Each State:")
+
+for state in states:
+
+    print(
+        state,
+        "->",
+        policy[state],
+        "| Value =",
+        round(V[state], 2)
+    )
+
+
+print("\nOptimal Path from Start:")
+
+state = START
+path = [state]
+
+for step in range(25):
+
+    if state == GOAL:
+        break
+
+    action = policy[state]
+
+    next_state, reward = get_next_state(
+        state,
+        action
+    )
+
+    if next_state == state:
+        break
+
+    state = next_state
+
+    path.append(state)
+
+
+for i, state in enumerate(path):
+
+    print(
+        "Step",
+        i,
+        ":",
+        state
+    )
+
+print("\nTotal Moves:", len(path) - 1)
+
+if path[-1] == GOAL:
+    print("Destination Reached: YES")
+else:
+    print("Destination Reached: NO")
