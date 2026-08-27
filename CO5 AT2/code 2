@@ -1,0 +1,77 @@
+print("Karthik V")
+import random
+
+movies = [
+    "Movie 1",
+    "Movie 2",
+    "Movie 3",
+    "Movie 4",
+    "Movie 5"
+]
+
+true_rewards = [0.30, 0.50, 0.70, 0.40, 0.60]
+
+epsilon = 0.1
+interactions = 10000
+
+reward_sum = [0] * len(movies)
+count = [0] * len(movies)
+
+random.seed(42)
+
+for i in range(interactions):
+
+    if random.random() < epsilon:
+        selected = random.randint(0, len(movies) - 1)
+    else:
+        estimates = []
+
+        for j in range(len(movies)):
+            if count[j] == 0:
+                estimates.append(0)
+            else:
+                estimates.append(reward_sum[j] / count[j])
+
+        selected = estimates.index(max(estimates))
+
+    reward = 1 if random.random() < true_rewards[selected] else 0
+
+    reward_sum[selected] += reward
+    count[selected] += 1
+
+estimated_rewards = []
+
+for i in range(len(movies)):
+    estimated_rewards.append(
+        reward_sum[i] / count[i]
+    )
+
+best_movie = estimated_rewards.index(
+    max(estimated_rewards)
+)
+
+print("Epsilon-Greedy K-Armed Bandit")
+print("--------------------------------")
+
+print("Number of Movies:", len(movies))
+print("Number of Interactions:", interactions)
+print("Epsilon:", epsilon)
+
+print("\nMovie Results:")
+
+for i in range(len(movies)):
+    print(
+        movies[i],
+        "| Selected:", count[i],
+        "| Rewards:", reward_sum[i],
+        "| Estimated Reward:",
+        round(estimated_rewards[i], 4)
+    )
+
+print("\nBest Movie:")
+print(movies[best_movie])
+
+print(
+    "Highest Expected Reward:",
+    round(estimated_rewards[best_movie], 4)
+)
